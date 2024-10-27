@@ -46,7 +46,7 @@ public class ConsumerWithCooperativeStickyAssignor {
                 try{
                     mainThread.join();
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    log.error("Unexpected error: ", e.printStackTrace());
                 }
             }
         });
