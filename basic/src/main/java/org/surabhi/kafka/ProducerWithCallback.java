@@ -32,7 +32,7 @@ public class ProducerWithCallback {
         for (int i = 0; i < 10; i++) {
 
             ProducerRecord<String, String> producerRecord =
-                    new ProducerRecord<>("fourthtopic", "hellow world:" + String.valueOf(i));
+                    new ProducerRecord<>("fourthtopic", "hellow world:" + i);
 
             //Send data
             producer.send(producerRecord, new Callback() {
