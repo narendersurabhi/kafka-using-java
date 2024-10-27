@@ -21,7 +21,7 @@ public class ConsumerWithCooperativeStickyAssignor {
         log.info("I am a Kafka Consumer!");
 
         String groupId = "my-application";
-        String topic = "fourthtopic";
+        String topic = "wikimedia.recentchange";
         //Create Properties
         Properties properties = new Properties();
         properties.setProperty("bootstrap.servers", "127.0.0.1:9092");
