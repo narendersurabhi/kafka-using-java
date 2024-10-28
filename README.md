@@ -19,6 +19,7 @@ Apache Kafka is a distributed streaming platform that is used to build real-time
 - Java 11 or higher
 - Apache Kafka
 - Gradle
+- Docker
 
 ## Setup
 
