@@ -21,6 +21,7 @@ import org.opensearch.client.RestClient;
 import org.opensearch.client.RestHighLevelClient;
 import org.opensearch.client.indices.CreateIndexRequest;
 import org.opensearch.client.indices.CreateIndexResponse;
+import org.opensearch.client.indices.GetIndexRequest;
 import org.opensearch.cluster.metadata.Metadata;
 import org.opensearch.common.xcontent.XContentType;
 import org.slf4j.Logger;
@@ -74,6 +75,7 @@ public class OpenSearchConsumer {
         Logger log = LoggerFactory.getLogger(OpenSearchConsumer.class.getName());
 
         KafkaConsumer<String, String> kafkaConsumer = createKafkaConsumer("wikimedia.recentchange");
+        RestHighLevelClient opensearchClient = createOpenSearchClient();
 
         Thread mainThread = Thread.currentThread();
 
@@ -90,10 +92,12 @@ public class OpenSearchConsumer {
             }
         });
         //Kafka Client
-        try (RestHighLevelClient opensearchClient = createOpenSearchClient(); kafkaConsumer) {
+        try (opensearchClient; kafkaConsumer) {
             //create an index if it does not exist already
-//            CreateIndexRequest createIndexRequest = new CreateIndexRequest("wikimedia");
-//            CreateIndexResponse createIndexResponse = opensearchClient.indices().create(createIndexRequest, RequestOptions.DEFAULT);
+            if (! opensearchClient.indices().exists(new GetIndexRequest("wikimedia"), RequestOptions.DEFAULT)) {
+                CreateIndexRequest createIndexRequest = new CreateIndexRequest("wikimedia");
+                CreateIndexResponse createIndexResponse = opensearchClient.indices().create(createIndexRequest, RequestOptions.DEFAULT);
+            }
 
             while(true) {
 
@@ -116,6 +120,8 @@ public class OpenSearchConsumer {
                 if(bulkRequest.numberOfActions()>0) {
                     BulkResponse bulkResponse = opensearchClient.bulk(bulkRequest, RequestOptions.DEFAULT);
                     log.info("Updated " + bulkResponse.getItems().length + " record(s).");
+                    kafkaConsumer.commitSync();
+                    log.info("Commits successful.");
                 }
             }
 
@@ -124,6 +130,9 @@ public class OpenSearchConsumer {
             log.info("Shutdown detected. Trying to shutdown.");
         } catch (Exception e) {
             log.error("Error: ", e);
+        } finally {
+            kafkaConsumer.close();
+            opensearchClient.close();
         }
     }
 
@@ -148,6 +157,8 @@ public class OpenSearchConsumer {
         properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, groupId);
         properties.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         properties.setProperty(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, CooperativeStickyAssignor.class.getName());
+
+        properties.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
 
         // Create Consumer
         KafkaConsumer<String, String> kafkaConsumer = new KafkaConsumer<>(properties);
